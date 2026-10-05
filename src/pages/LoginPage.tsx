@@ -35,43 +35,46 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-film-texture flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full"
+        className="max-w-md w-full fade-in-film"
       >
+        {/* Заголовок в стиле титров */}
         <div className="text-center mb-8">
+          <div className="text-film-gold text-3xl mb-2 font-title tracking-widest">✦ ✦ ✦</div>
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', delay: 0.2 }}
-            className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-pink-500 to-purple-600 rounded-2xl mb-4 shadow-2xl"
+            className="inline-flex items-center justify-center w-20 h-20 bg-film-dark border-4 border-film-gold rounded-full mb-4"
           >
-            <Music className="w-10 h-10 text-white" />
+            <Music className="w-10 h-10 text-film-gold" />
           </motion.div>
-          <h1 className="text-4xl font-bold text-white mb-2">Музыкальное Лото</h1>
-          <p className="text-white/60">Войдите или создайте аккаунт</p>
+          <h1 className="text-4xl font-serif-old font-bold text-film-cream mb-2">Музыкальное Лото</h1>
+          <p className="text-film-dim font-typewriter">Представление начинается...</p>
+          <div className="text-film-gold text-3xl mt-2 font-title tracking-widest">✦ ✦ ✦</div>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20">
+        <div className="silent-film-card">
           <div className="flex gap-2 mb-6">
             <button
               onClick={() => setIsLogin(true)}
-              className={`flex-1 py-2 rounded-xl font-semibold transition-all ${
+              className={`flex-1 py-2 rounded font-title text-lg transition-all border-2 ${
                 isLogin
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-white/5 text-white/60 hover:bg-white/10'
+                  ? 'bg-film-gold/20 border-film-gold text-film-gold'
+                  : 'bg-film-dark border-film text-film-dim hover:border-film-gold'
               }`}
             >
               Вход
             </button>
             <button
               onClick={() => setIsLogin(false)}
-              className={`flex-1 py-2 rounded-xl font-semibold transition-all ${
+              className={`flex-1 py-2 rounded font-title text-lg transition-all border-2 ${
                 !isLogin
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-white/5 text-white/60 hover:bg-white/10'
+                  ? 'bg-film-gold/20 border-film-gold text-film-gold'
+                  : 'bg-film-dark border-film text-film-dim hover:border-film-gold'
               }`}
             >
               Регистрация
@@ -81,42 +84,42 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div>
-                <label className="text-white/70 text-sm mb-1 block">Отображаемое имя</label>
+                <label className="text-film-dim text-sm font-typewriter mb-1 block">Ваше имя</label>
                 <input
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Как вас называть?"
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-purple-400 transition-colors"
+                  className="w-full bg-film-dark border-2 border-film rounded px-4 py-3 text-film-cream placeholder-film-dim/50 focus:outline-none focus:border-film-gold font-typewriter"
                 />
               </div>
             )}
 
             <div>
-              <label className="text-white/70 text-sm mb-1 block">Имя пользователя</label>
+              <label className="text-film-dim text-sm font-typewriter mb-1 block">Логин</label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="username"
-                className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-purple-400 transition-colors"
+                className="w-full bg-film-dark border-2 border-film rounded px-4 py-3 text-film-cream placeholder-film-dim/50 focus:outline-none focus:border-film-gold font-typewriter"
               />
             </div>
 
             <div>
-              <label className="text-white/70 text-sm mb-1 block">Пароль</label>
+              <label className="text-film-dim text-sm font-typewriter mb-1 block">Пароль</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 pr-12 text-white placeholder-white/40 focus:outline-none focus:border-purple-400 transition-colors"
+                  className="w-full bg-film-dark border-2 border-film rounded px-4 py-3 pr-12 text-film-cream placeholder-film-dim/50 focus:outline-none focus:border-film-gold font-typewriter"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-film-dim hover:text-film-cream"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -125,15 +128,15 @@ export default function LoginPage() {
 
             {!isLogin && (
               <div>
-                <label className="text-white/70 text-sm mb-2 block">Роль</label>
+                <label className="text-film-dim text-sm font-typewriter mb-2 block">Роль</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setRole('player')}
-                    className={`py-3 rounded-xl font-semibold transition-all ${
+                    className={`py-3 rounded font-title text-lg transition-all border-2 ${
                       role === 'player'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white/5 text-white/60 hover:bg-white/10'
+                        ? 'bg-film-gold/20 border-film-gold text-film-gold'
+                        : 'bg-film-dark border-film text-film-dim hover:border-film-gold'
                     }`}
                   >
                     🎮 Игрок
@@ -141,30 +144,27 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setRole('admin')}
-                    className={`py-3 rounded-xl font-semibold transition-all ${
+                    className={`py-3 rounded font-title text-lg transition-all border-2 ${
                       role === 'admin'
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-white/5 text-white/60 hover:bg-white/10'
+                        ? 'bg-film-gold/20 border-film-gold text-film-gold'
+                        : 'bg-film-dark border-film text-film-dim hover:border-film-gold'
                     }`}
                   >
                     👑 Админ
                   </button>
                 </div>
-                <p className="text-white/40 text-xs mt-2">
-                  Админ может создавать и управлять плейлистами
-                </p>
               </div>
             )}
 
             {error && (
-              <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-3 text-red-300 text-sm">
+              <div className="bg-red-900/30 border border-red-700 rounded p-3 text-red-300 text-sm font-typewriter">
                 {error}
               </div>
             )}
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-pink-500 to-purple-600 text-white py-3 rounded-xl font-bold shadow-xl hover:shadow-2xl transition-shadow flex items-center justify-center gap-2"
+              className="btn-film btn-film-primary w-full font-title text-xl flex items-center justify-center gap-2"
             >
               {isLogin ? (
                 <>
@@ -174,18 +174,17 @@ export default function LoginPage() {
               ) : (
                 <>
                   <UserPlus className="w-5 h-5" />
-                  Зарегистрироваться
+                  Регистрация
                 </>
               )}
             </button>
           </form>
 
           {isLogin && (
-            <div className="mt-4 bg-white/5 rounded-xl p-3 border border-white/10">
-              <p className="text-white/50 text-xs">
-                💡 <span className="text-white/70">Демо-аккаунт админа:</span><br />
-                Логин: <code className="text-purple-300">admin</code><br />
-                Пароль: <code className="text-purple-300">admin</code>
+            <div className="mt-4 bg-film-dark/50 rounded p-3 border border-film/30">
+              <p className="text-film-dim text-xs font-typewriter">
+                💡 <span className="text-film-gold">Демо-аккаунт:</span><br />
+                Логин: <code className="text-film-cream">admin</code> / Пароль: <code className="text-film-cream">admin</code>
               </p>
             </div>
           )}
