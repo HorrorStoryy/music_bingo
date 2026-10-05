@@ -6,6 +6,7 @@ import HostPage from './pages/HostPage';
 import PlayerPage from './pages/PlayerPage';
 import AdminPage from './pages/AdminPage';
 import GitHubGuidePage from './pages/GitHubGuidePage';
+import HowToPlayPage from './pages/HowToPlayPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -26,6 +27,7 @@ function AppRoutes() {
       <Route path="/player/:roomId/:playerName" element={<PlayerPage />} />
       <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
       <Route path="/github-guide" element={<GitHubGuidePage />} />
+      <Route path="/how-to-play" element={<HowToPlayPage />} />
     </Routes>
   );
 }

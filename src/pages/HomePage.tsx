@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Music, Users, Tv, Smartphone, Crown, LogOut, Settings, Play, Tag } from 'lucide-react';
+import { Music, Users, Tv, Smartphone, Crown, LogOut, Settings, Play, Tag, HelpCircle } from 'lucide-react';
 import { generateRoomCode } from '../utils/gameUtils';
 import { useAuth } from '../contexts/AuthContext';
 import { getPlaylists } from '../utils/storage';
@@ -83,6 +83,13 @@ export default function HomePage() {
           </div>
           
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/how-to-play')}
+              className="flex items-center gap-2 bg-white/10 border border-white/20 text-white px-4 py-2 rounded-xl hover:bg-white/20 transition-colors text-sm"
+            >
+              <HelpCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">Как играть</span>
+            </button>
             {isAdmin && (
               <button
                 onClick={() => navigate('/admin')}

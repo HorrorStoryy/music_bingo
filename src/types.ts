@@ -58,6 +58,6 @@ export interface PlayerMessage {
 }
 
 export interface HostMessage {
-  type: 'gameState' | 'playTrack' | 'stopTrack' | 'nextTrack' | 'playerJoined' | 'gameStart' | 'reset';
+  type: 'gameState' | 'playTrack' | 'stopTrack' | 'nextTrack' | 'playerJoined' | 'gameStart' | 'reset' | 'revealTrack';
   payload: any;
 }
