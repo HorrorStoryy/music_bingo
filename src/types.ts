@@ -8,6 +8,26 @@ export interface Track {
   coverUrl?: string;
 }
 
+export interface User {
+  id: string;
+  username: string;
+  password: string;
+  role: 'admin' | 'player';
+  displayName: string;
+}
+
+export interface Playlist {
+  id: string;
+  name: string;
+  description: string;
+  coverUrl?: string;
+  tracks: Track[];
+  createdBy: string;
+  createdAt: number;
+  isPublic: boolean;
+  tags?: string[];
+}
+
 export interface LottoCell {
   trackId: string;
   marked: boolean;

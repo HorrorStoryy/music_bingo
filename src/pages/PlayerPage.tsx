@@ -8,7 +8,7 @@ import LottoCardComponent from '../components/LottoCard';
 
 export default function PlayerPage() {
   const { roomId, playerName: encodedName } = useParams<{ roomId: string; playerName: string }>();
-  const playerName = decodeURIComponent(encodedName || '');
+  const playerName = decodeURIComponent(encodedName || '') || 'Игрок';
   
   const [card, setCard] = useState<LottoCard | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);

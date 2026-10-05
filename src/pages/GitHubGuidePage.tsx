@@ -242,11 +242,11 @@ jobs:
                   </tr>
                   <tr className="border-b border-white/5">
                     <td className="py-2 text-white/60">Description</td>
-                    <td className="py-2">Музыкальное лото — мультиплеерная игра</td>
+                    <td className="py-2">Музыкальное лото — мультиплеерная игра с плейлистами</td>
                   </tr>
                   <tr className="border-b border-white/5">
                     <td className="py-2 text-white/60">Visibility</td>
-                    <td className="py-2"><span className="text-green-400">Public</span> или <span className="text-yellow-400">Private</span></td>
+                    <td className="py-2"><span className="text-green-400">Public</span> (для GitHub Pages)</td>
                   </tr>
                   <tr className="border-b border-white/5">
                     <td className="py-2 text-white/60">Initialize with README</td>
@@ -270,6 +270,47 @@ jobs:
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </motion.div>
+
+          {/* System Features */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.55 }}
+            className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 backdrop-blur-md rounded-2xl p-6 border border-green-500/20"
+          >
+            <h2 className="text-white text-xl font-bold mb-3 flex items-center gap-2">
+              <Code className="w-5 h-5 text-green-400" />
+              Система авторизации и плейлисты
+            </h2>
+            <div className="text-white/70 space-y-3">
+              <div>
+                <p className="text-white font-semibold mb-1">🔐 Роли пользователей:</p>
+                <ul className="text-white/60 text-sm space-y-1 ml-4">
+                  <li>• <span className="text-yellow-400 font-semibold">Админ</span> — создаёт и управляет плейлистами</li>
+                  <li>• <span className="text-blue-400 font-semibold">Игрок</span> — выбирает плейлист и играет</li>
+                </ul>
+              </div>
+              <div>
+                <p className="text-white font-semibold mb-1">👑 Демо-аккаунт админа:</p>
+                <code className="text-green-400 bg-black/30 px-3 py-1 rounded block text-sm">
+                  Логин: admin / Пароль: admin
+                </code>
+              </div>
+              <div>
+                <p className="text-white font-semibold mb-1">🎵 Предустановленные плейлисты:</p>
+                <ul className="text-white/60 text-sm space-y-1 ml-4">
+                  <li>• 🎸 Хиты 90-х</li>
+                  <li>• 🌟 Вечные хиты</li>
+                  <li>• 🇷🇺 Русские хиты</li>
+                  <li>• 🎉 Для вечеринки</li>
+                </ul>
+              </div>
+              <div>
+                <p className="text-white font-semibold mb-1">💾 Хранение данных:</p>
+                <p className="text-white/60 text-sm">Плейлисты и аккаунты хранятся в localStorage браузера. Можно экспортировать/импортировать плейлисты в JSON.</p>
+              </div>
             </div>
           </motion.div>
 

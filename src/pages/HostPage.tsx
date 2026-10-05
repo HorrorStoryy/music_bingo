@@ -4,18 +4,22 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import { 
   Upload, Play, Pause, SkipForward, RotateCcw, Users, Music, 
-  Copy, Check, Trash2, Plus, Volume2, Disc3, Image, QrCode
+  Copy, Check, Trash2, Plus, Disc3, ArrowLeft, LogOut
 } from 'lucide-react';
-import { Track, LottoCard, GameState } from '../types';
+import { Track, LottoCard, Playlist } from '../types';
 import { useHostPeer } from '../hooks/usePeer';
 import { generateLottoCard, generateShuffleOrder, getTrackById } from '../utils/gameUtils';
 import LottoCardComponent from '../components/LottoCard';
+import { useAuth } from '../contexts/AuthContext';
+import { getPlaylistById } from '../utils/storage';
 import { v4 as uuidv4 } from 'uuid';
 
 export default function HostPage() {
-  const { roomId } = useParams<{ roomId: string }>();
+  const { roomId, playlistId } = useParams<{ roomId: string; playlistId: string }>();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   
+  const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [cards, setCards] = useState<LottoCard[]>([]);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(-1);
@@ -24,13 +28,25 @@ export default function HostPage() {
   const [winner, setWinner] = useState<string | null>(null);
   const [shuffleOrder, setShuffleOrder] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
-  const [trackName, setTrackName] = useState('');
-  const [trackArtist, setTrackArtist] = useState('');
-  const [showAddForm, setShowAddForm] = useState(false);
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { peerReady, connectedPlayers, broadcast, error } = useHostPeer(roomId || '');
+  const { peerReady, connectedPlayers, broadcast } = useHostPeer(roomId || '');
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    if (playlistId) {
+      const pl = getPlaylistById(playlistId);
+      if (pl) {
+        setPlaylist(pl);
+        setTracks(pl.tracks);
+      }
+    }
+  }, [playlistId, user]);
 
   const currentTrack = currentTrackIndex >= 0 ? getTrackById(tracks, shuffleOrder[currentTrackIndex]) : null;
 
@@ -42,17 +58,20 @@ export default function HostPage() {
       const url = URL.createObjectURL(file);
       const track: Track = {
         id: uuidv4(),
-        name: trackName || file.name.replace(/\.[^/.]+$/, ''),
-        artist: trackArtist || 'Неизвестный исполнитель',
+        name: file.name.replace(/\.[^/.]+$/, ''),
+        artist: 'Неизвестный исполнитель',
         fileUrl: url,
         fileName: file.name,
       };
       setTracks(prev => [...prev, track]);
     });
-    
-    setTrackName('');
-    setTrackArtist('');
-    setShowAddForm(false);
+  };
+
+  const updateTrackFile = (trackId: string, file: File) => {
+    const url = URL.createObjectURL(file);
+    setTracks(prev => prev.map(t => 
+      t.id === trackId ? { ...t, fileUrl: url, fileName: file.name } : t
+    ));
   };
 
   const removeTrack = (id: string) => {
@@ -69,14 +88,12 @@ export default function HostPage() {
     setPhase('waiting');
     setWinner(null);
     
-    // Generate cards for connected players
     const newCards: LottoCard[] = [];
-    connectedPlayers.forEach((name, peerId) => {
+    connectedPlayers.forEach((name) => {
       const card = generateLottoCard(tracks, name);
       newCards.push(card);
     });
     
-    // If no players connected, create demo cards
     if (newCards.length === 0) {
       for (let i = 1; i <= Math.min(4, Math.ceil(tracks.length / 3)); i++) {
         newCards.push(generateLottoCard(tracks, `Игрок ${i}`));
@@ -89,7 +106,12 @@ export default function HostPage() {
 
   const playCurrentTrack = () => {
     if (!currentTrack || !audioRef.current) return;
+    if (!currentTrack.fileUrl) {
+      alert('Для этого трека не загружен аудиофайл');
+      return;
+    }
     
+    audioRef.current.src = currentTrack.fileUrl;
     audioRef.current.play();
     setIsPlaying(true);
     broadcast({ type: 'playTrack', payload: { trackId: currentTrack.id, trackName: currentTrack.name, artist: currentTrack.artist } });
@@ -147,53 +169,18 @@ export default function HostPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   useEffect(() => {
-    if (currentTrack && audioRef.current) {
+    if (currentTrack && audioRef.current && currentTrack.fileUrl) {
       audioRef.current.src = currentTrack.fileUrl;
     }
   }, [currentTrackIndex]);
 
-  const handlePlayerMark = useCallback((data: any) => {
-    if (data.type === 'mark') {
-      setCards(prev => prev.map(card => {
-        if (card.id === data.payload.cardId) {
-          const newCells = card.cells.map(cell => 
-            cell.trackId === data.payload.trackId ? { ...cell, marked: true } : cell
-          );
-          const newCard = { ...card, cells: newCells };
-          
-          // Check bingo
-          if (newCells.every(c => c.marked)) {
-            newCard.completed = true;
-            setWinner(card.playerName);
-            setPhase('finished');
-          }
-          
-          return newCard;
-        }
-        return card;
-      }));
-    }
-  }, []);
-
-  // Listen for player messages
-  useEffect(() => {
-    // This is handled via the peer hook's broadcast
-  }, [handlePlayerMark]);
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-900 to-purple-900 flex items-center justify-center p-4">
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 text-center border border-red-500/30">
-          <h2 className="text-white text-2xl font-bold mb-2">Ошибка</h2>
-          <p className="text-white/70 mb-4">{error}</p>
-          <button onClick={() => navigate('/')} className="bg-white/20 text-white px-6 py-2 rounded-xl">
-            На главную
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -201,10 +188,16 @@ export default function HostPage() {
       <header className="bg-black/30 backdrop-blur-md border-b border-white/10 p-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/')}
+              className="text-white/50 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
             <Disc3 className={`w-8 h-8 text-purple-400 ${isPlaying ? 'animate-spin' : ''}`} />
             <div>
-              <h1 className="text-white font-bold text-lg">Музыкальное Лото</h1>
-              <p className="text-white/50 text-sm">Комната: <span className="font-mono text-purple-300">{roomId}</span></p>
+              <h1 className="text-white font-bold text-lg">{playlist?.name || 'Игра'}</h1>
+              <p className="text-white/50 text-sm">Код: <span className="font-mono text-purple-300">{roomId}</span></p>
             </div>
           </div>
           
@@ -221,6 +214,13 @@ export default function HostPage() {
               <Users className="w-4 h-4" />
               <span>{connectedPlayers.size}</span>
             </div>
+
+            <button
+              onClick={handleLogout}
+              className="bg-white/10 border border-white/20 text-white p-2 rounded-xl hover:bg-white/20 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
@@ -235,6 +235,18 @@ export default function HostPage() {
             </p>
           </div>
 
+          {/* QR Code */}
+          <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 text-center">
+            <p className="text-white/50 text-sm mb-2">QR-код для подключения:</p>
+            <div className="bg-white rounded-lg p-3 inline-block">
+              <QRCodeSVG 
+                value={`${window.location.origin}/player/${roomId}/${encodeURIComponent(user.displayName)}`}
+                size={150}
+                level="M"
+              />
+            </div>
+          </div>
+
           {/* Track Upload */}
           <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
             <h2 className="text-white font-bold mb-3 flex items-center gap-2">
@@ -242,55 +254,22 @@ export default function HostPage() {
               Треки ({tracks.length})
             </h2>
             
-            {!showAddForm ? (
-              <button
-                onClick={() => setShowAddForm(true)}
-                className="w-full bg-purple-600/30 border border-purple-500/30 text-purple-300 py-3 rounded-xl hover:bg-purple-600/50 transition-colors flex items-center justify-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                Добавить трек
-              </button>
-            ) : (
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  value={trackName}
-                  onChange={(e) => setTrackName(e.target.value)}
-                  placeholder="Название трека"
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm placeholder-white/40 focus:outline-none focus:border-purple-400"
-                />
-                <input
-                  type="text"
-                  value={trackArtist}
-                  onChange={(e) => setTrackArtist(e.target.value)}
-                  placeholder="Исполнитель"
-                  className="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm placeholder-white/40 focus:outline-none focus:border-purple-400"
-                />
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="audio/*,video/*"
-                  multiple
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 bg-green-600/30 border border-green-500/30 text-green-300 py-2 rounded-lg text-sm hover:bg-green-600/50 transition-colors flex items-center justify-center gap-1"
-                  >
-                    <Upload className="w-4 h-4" />
-                    Выбрать файлы
-                  </button>
-                  <button
-                    onClick={() => setShowAddForm(false)}
-                    className="bg-white/10 text-white/70 px-3 py-2 rounded-lg text-sm hover:bg-white/20"
-                  >
-                    Отмена
-                  </button>
-                </div>
-              </div>
-            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="audio/*,video/*"
+              multiple
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+            
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full bg-purple-600/30 border border-purple-500/30 text-purple-300 py-2 rounded-xl hover:bg-purple-600/50 transition-colors flex items-center justify-center gap-2 text-sm"
+            >
+              <Upload className="w-4 h-4" />
+              Загрузить аудиофайлы
+            </button>
 
             {/* Track List */}
             {tracks.length > 0 && (
@@ -301,7 +280,24 @@ export default function HostPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm truncate">{track.name}</p>
                       <p className="text-white/50 text-xs truncate">{track.artist}</p>
+                      {track.fileUrl && (
+                        <span className="text-green-400 text-xs">✓ Аудио загружено</span>
+                      )}
                     </div>
+                    {!track.fileUrl && (
+                      <label className="cursor-pointer text-blue-400 hover:text-blue-300 text-xs px-2 py-1 bg-blue-500/20 rounded">
+                        +файл
+                        <input
+                          type="file"
+                          accept="audio/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) updateTrackFile(track.id, file);
+                          }}
+                        />
+                      </label>
+                    )}
                     <button
                       onClick={() => removeTrack(track.id)}
                       className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-all"
@@ -343,23 +339,11 @@ export default function HostPage() {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
               <div className="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 text-center">
                 <Music className="w-16 h-16 text-purple-400 mx-auto mb-4" />
-                <h2 className="text-white text-2xl font-bold mb-2">Подготовка к игре</h2>
-                <p className="text-white/60 mb-6">
-                  Загрузите треки и дождитесь подключения игроков
+                <h2 className="text-white text-2xl font-bold mb-2">{playlist?.name}</h2>
+                <p className="text-white/60 mb-4">{playlist?.description}</p>
+                <p className="text-white/40 text-sm mb-6">
+                  Загрузите аудиофайлы для треков и дождитесь подключения игроков
                 </p>
-                
-                <div className="bg-white/5 rounded-xl p-4 mb-6 inline-block">
-                  <p className="text-white/50 text-sm mb-1">Код комнаты для игроков:</p>
-                  <p className="text-3xl font-mono font-bold text-purple-300">{roomId}</p>
-                  <div className="mt-3 bg-white rounded-lg p-3 inline-block">
-                    <QRCodeSVG 
-                      value={`${window.location.origin}/player/${roomId}/Игрок`}
-                      size={120}
-                      level="M"
-                    />
-                  </div>
-                  <p className="text-white/40 text-xs mt-2">Отсканируйте QR-код для подключения</p>
-                </div>
 
                 <div>
                   <button
@@ -462,7 +446,6 @@ export default function HostPage() {
                     isHost={connectedPlayers.size > 0}
                     revealedTrackIds={currentTrack ? new Set([currentTrack.id]) : new Set()}
                     onCellClick={connectedPlayers.size === 0 ? (trackId) => {
-                      // Demo mode - host can mark cells
                       setCards(prev => prev.map(c => {
                         if (c.id === card.id) {
                           const newCells = c.cells.map(cell => 
