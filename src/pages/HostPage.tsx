@@ -4,14 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import { 
   Upload, Play, Pause, SkipForward, RotateCcw, Users, Music, 
-  Copy, Check, Trash2, Disc3, ArrowLeft, LogOut, Video, Film, Eye, EyeOff
+  Copy, Check, Trash2, Disc3, ArrowLeft, LogOut, Video, Link2, 
+  Plus, GripVertical, ChevronUp, ChevronDown, Image as ImageIcon,
+  ExternalLink, Film, Music2, Youtube
 } from 'lucide-react';
 import { Track, LottoCard, Playlist } from '../types';
 import { useHostPeer } from '../hooks/usePeer';
 import { generateLottoCard, generateShuffleOrder, getTrackById } from '../utils/gameUtils';
+import { getHostTracks, saveHostTracks, addHostTrack, removeHostTrack, reorderHostTracks, getPlaylistById } from '../utils/storage';
+import { parseMediaLink, getMediaLinkDescription, isValidUrl } from '../utils/mediaParser';
 import LottoCardComponent from '../components/LottoCard';
 import { useAuth } from '../contexts/AuthContext';
-import { getPlaylistById } from '../utils/storage';
 import { v4 as uuidv4 } from 'uuid';
 
 export default function HostPage() {
@@ -28,58 +31,123 @@ export default function HostPage() {
   const [winner, setWinner] = useState<string | null>(null);
   const [shuffleOrder, setShuffleOrder] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
-  const [showTrackInfo, setShowTrackInfo] = useState(false); // Показывать ли название трека на экране
-  const [currentTrackType, setCurrentTrackType] = useState<'audio' | 'video'>('audio');
+  const [showTrackInfo, setShowTrackInfo] = useState(false);
+  
+  // Форма добавления трека
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newTrackName, setNewTrackName] = useState('');
+  const [newTrackArtist, setNewTrackArtist] = useState('');
+  const [newTrackLink, setNewTrackLink] = useState('');
+  const [newTrackType, setNewTrackType] = useState<'audio' | 'video'>('video');
+  const [newTrackCover, setNewTrackCover] = useState('');
+  const [linkError, setLinkError] = useState('');
   
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const { peerReady, connectedPlayers, broadcast } = useHostPeer(roomId || '');
 
+  // Загрузка треков из localStorage при старте
   useEffect(() => {
     if (!user) {
       navigate('/login');
       return;
     }
     
-    if (playlistId) {
+    const savedTracks = getHostTracks();
+    if (savedTracks.length > 0) {
+      setTracks(savedTracks);
+    } else if (playlistId) {
+      // Если нет сохранённых треков, берём из плейлиста
       const pl = getPlaylistById(playlistId);
       if (pl) {
         setPlaylist(pl);
         setTracks(pl.tracks);
+        saveHostTracks(pl.tracks);
       }
     }
   }, [playlistId, user]);
 
+  // Сохранение треков при изменении
+  useEffect(() => {
+    if (tracks.length > 0) {
+      saveHostTracks(tracks);
+    }
+  }, [tracks]);
+
   const currentTrack = currentTrackIndex >= 0 ? getTrackById(tracks, shuffleOrder[currentTrackIndex]) : null;
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    Array.from(files).forEach(file => {
-      const url = URL.createObjectURL(file);
-      const isVideo = file.type.startsWith('video/');
-      const track: Track = {
-        id: uuidv4(),
-        name: file.name.replace(/\.[^/.]+$/, ''),
-        artist: 'Неизвестный исполнитель',
-        fileUrl: url,
-        fileName: file.name,
+  // Получить embed URL для текущего трека
+  const getCurrentMedia = () => {
+    if (!currentTrack) return null;
+    
+    if (currentTrack.mediaLink) {
+      return parseMediaLink(currentTrack.mediaLink, currentTrack.mediaType);
+    }
+    if (currentTrack.fileUrl) {
+      const isVideo = currentTrack.fileName?.match(/\.(mp4|webm|mov)$/i);
+      return {
+        type: isVideo ? 'video' : 'audio',
+        embedUrl: currentTrack.fileUrl,
+        originalUrl: currentTrack.fileUrl,
+        displayType: isVideo ? 'video' : 'audio' as const,
       };
-      setTracks(prev => [...prev, track]);
-    });
+    }
+    return null;
   };
 
-  const updateTrackFile = (trackId: string, file: File) => {
-    const url = URL.createObjectURL(file);
-    setTracks(prev => prev.map(t => 
-      t.id === trackId ? { ...t, fileUrl: url, fileName: file.name } : t
-    ));
+  // Обработчик добавления трека
+  const handleAddTrack = () => {
+    setLinkError('');
+    
+    if (!newTrackName.trim()) {
+      setLinkError('Введите название трека');
+      return;
+    }
+    
+    if (!newTrackLink.trim()) {
+      setLinkError('Введите ссылку на трек');
+      return;
+    }
+    
+    if (!isValidUrl(newTrackLink)) {
+      setLinkError('Некорректная ссылка');
+      return;
+    }
+    
+    const parsed = parseMediaLink(newTrackLink, newTrackType);
+    
+    const track: Track = {
+      id: uuidv4(),
+      name: newTrackName.trim(),
+      artist: newTrackArtist.trim() || 'Неизвестный исполнитель',
+      fileUrl: '',
+      fileName: '',
+      mediaLink: newTrackLink.trim(),
+      mediaType: newTrackType,
+      coverUrl: newTrackCover.trim() || undefined,
+    };
+    
+    setTracks(prev => [...prev, track]);
+    
+    // Очистка формы
+    setNewTrackName('');
+    setNewTrackArtist('');
+    setNewTrackLink('');
+    setNewTrackCover('');
+    setNewTrackType('video');
+    setShowAddForm(false);
   };
 
-  const removeTrack = (id: string) => {
+  const handleDeleteTrack = (id: string) => {
     setTracks(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleMoveTrack = (index: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= tracks.length) return;
+    
+    const newTracks = [...tracks];
+    [newTracks[index], newTracks[newIndex]] = [newTracks[newIndex], newTracks[index]];
+    setTracks(newTracks);
   };
 
   const startGame = useCallback(() => {
@@ -106,44 +174,33 @@ export default function HostPage() {
     }
     
     setCards(newCards);
-    // Отправляем игрокам только ID треков, НЕ названия!
-    broadcast({ type: 'gameStart', payload: { cards: newCards, tracks: tracks.map(t => ({ id: t.id, name: t.name, artist: t.artist })) } });
+    broadcast({ type: 'gameStart', payload: { cards: newCards, tracks } });
   }, [tracks, connectedPlayers, broadcast]);
 
   const playCurrentTrack = () => {
     if (!currentTrack) return;
-    if (!currentTrack.fileUrl) {
-      alert('Для этого трека не загружен файл (аудио или видео)');
+    
+    const media = getCurrentMedia();
+    if (!media) {
+      alert('Для этого трека не указана ссылка');
       return;
     }
-
-    // Определяем тип файла
-    const isVideo = currentTrack.fileUrl.includes('video') || 
-                    currentTrack.fileName?.match(/\.(mp4|webm|mov|avi|mkv)$/i);
     
-    if (isVideo) {
-      setCurrentTrackType('video');
-      if (videoRef.current) {
-        videoRef.current.src = currentTrack.fileUrl;
-        videoRef.current.play();
-      }
-    } else {
-      setCurrentTrackType('audio');
-      if (audioRef.current) {
-        audioRef.current.src = currentTrack.fileUrl;
-        audioRef.current.play();
-      }
+    // Для аудио — запускаем через audio тег
+    if (media.displayType === 'audio' && audioRef.current) {
+      audioRef.current.src = media.embedUrl;
+      audioRef.current.play().catch(err => {
+        console.error('Audio play error:', err);
+        alert('Не удалось воспроизвести аудио. Возможно, ссылка блокируется CORS.');
+      });
     }
     
     setIsPlaying(true);
-    // ВАЖНО: НЕ отправляем название трека игрокам!
     broadcast({ type: 'playTrack', payload: { trackId: currentTrack.id, trackIndex: currentTrackIndex } });
   };
 
   const pauseTrack = () => {
-    if (currentTrackType === 'video' && videoRef.current) {
-      videoRef.current.pause();
-    } else if (audioRef.current) {
+    if (audioRef.current) {
       audioRef.current.pause();
     }
     setIsPlaying(false);
@@ -153,7 +210,6 @@ export default function HostPage() {
   const nextTrack = () => {
     if (currentTrackIndex < shuffleOrder.length - 1) {
       if (audioRef.current) audioRef.current.pause();
-      if (videoRef.current) videoRef.current.pause();
       
       const newIndex = currentTrackIndex + 1;
       setCurrentTrackIndex(newIndex);
@@ -167,7 +223,6 @@ export default function HostPage() {
   const prevTrack = () => {
     if (currentTrackIndex > 0) {
       if (audioRef.current) audioRef.current.pause();
-      if (videoRef.current) videoRef.current.pause();
       
       const newIndex = currentTrackIndex - 1;
       setCurrentTrackIndex(newIndex);
@@ -183,8 +238,7 @@ export default function HostPage() {
   };
 
   const resetGame = () => {
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-    if (videoRef.current) { videoRef.current.pause(); videoRef.current = null; }
+    if (audioRef.current) { audioRef.current.pause(); }
     setPhase('setup');
     setCurrentTrackIndex(-1);
     setIsPlaying(false);
@@ -208,28 +262,30 @@ export default function HostPage() {
 
   if (!user) return null;
 
+  const currentMedia = getCurrentMedia();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       {/* Header */}
       <header className="bg-black/30 backdrop-blur-md border-b border-white/10 p-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mx-auto flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate('/')} className="text-white/50 hover:text-white transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </button>
             <Disc3 className={`w-8 h-8 text-purple-400 ${isPlaying ? 'animate-spin' : ''}`} />
             <div>
-              <h1 className="text-white font-bold text-lg">{playlist?.name || 'Игра'}</h1>
+              <h1 className="text-white font-bold text-lg">{playlist?.name || 'Музыкальное Лото'}</h1>
               <p className="text-white/50 text-sm">Код: <span className="font-mono text-purple-300">{roomId}</span></p>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <button onClick={copyRoomCode} className="flex items-center gap-2 bg-white/10 border border-white/20 text-white px-4 py-2 rounded-xl hover:bg-white/20 transition-colors">
+          <div className="flex items-center gap-2">
+            <button onClick={copyRoomCode} className="flex items-center gap-2 bg-white/10 border border-white/20 text-white px-3 py-2 rounded-xl hover:bg-white/20 transition-colors text-sm">
               {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
               <span className="font-mono">{roomId}</span>
             </button>
-            <div className="flex items-center gap-2 bg-white/10 border border-white/20 text-white px-4 py-2 rounded-xl">
+            <div className="flex items-center gap-1 bg-white/10 border border-white/20 text-white px-3 py-2 rounded-xl text-sm">
               <Users className="w-4 h-4" />
               <span>{connectedPlayers.size}</span>
             </div>
@@ -241,85 +297,239 @@ export default function HostPage() {
       </header>
 
       <div className="max-w-7xl mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Panel */}
+        {/* Left Panel — Управление треками */}
         <div className="lg:col-span-1 space-y-4">
+          {/* Connection Status */}
           <div className={`p-3 rounded-xl border ${peerReady ? 'bg-green-500/10 border-green-500/30' : 'bg-yellow-500/10 border-yellow-500/30'}`}>
             <p className={`text-sm ${peerReady ? 'text-green-300' : 'text-yellow-300'}`}>
-              {peerReady ? '✅ Сервер готов. Игроки могут подключаться!' : '⏳ Подключение к серверу...'}
+              {peerReady ? '✅ Сервер готов. Игроки могут подключаться!' : '⏳ Подключение...'}
             </p>
           </div>
 
           {/* QR Code */}
           <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10 text-center">
-            <p className="text-white/50 text-sm mb-2">QR-код для подключения:</p>
+            <p className="text-white/50 text-sm mb-2">QR-код для игроков:</p>
             <div className="bg-white rounded-lg p-3 inline-block">
-              <QRCodeSVG value={`${window.location.origin}/player/${roomId}/${encodeURIComponent(user.displayName)}`} size={150} level="M" />
+              <QRCodeSVG value={`${window.location.origin}/player/${roomId}/${encodeURIComponent(user.displayName)}`} size={140} level="M" />
             </div>
           </div>
 
-          {/* Track Upload */}
+          {/* Add Track Button */}
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Добавить трек / клип
+          </button>
+
+          {/* Add Track Form Modal */}
+          <AnimatePresence>
+            {showAddForm && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                onClick={() => setShowAddForm(false)}
+              >
+                <motion.div
+                  initial={{ scale: 0.9, y: 20 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.9, y: 20 }}
+                  className="bg-slate-800 rounded-2xl p-6 max-w-md w-full border border-white/10 max-h-[90vh] overflow-y-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <h2 className="text-white text-xl font-bold mb-4 flex items-center gap-2">
+                    <Link2 className="w-5 h-5 text-purple-400" />
+                    Добавить трек / клип
+                  </h2>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-white/70 text-sm mb-1 block">Название *</label>
+                      <input
+                        type="text"
+                        value={newTrackName}
+                        onChange={(e) => setNewTrackName(e.target.value)}
+                        placeholder="Например: Smells Like Teen Spirit"
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-purple-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-white/70 text-sm mb-1 block">Исполнитель</label>
+                      <input
+                        type="text"
+                        value={newTrackArtist}
+                        onChange={(e) => setNewTrackArtist(e.target.value)}
+                        placeholder="Например: Nirvana"
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-purple-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-white/70 text-sm mb-1 block">Ссылка на трек/клип *</label>
+                      <input
+                        type="url"
+                        value={newTrackLink}
+                        onChange={(e) => setNewTrackLink(e.target.value)}
+                        placeholder="https://drive.google.com/... или YouTube"
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-purple-400 text-sm"
+                      />
+                      {newTrackLink && isValidUrl(newTrackLink) && (
+                        <p className="text-green-400 text-xs mt-1 flex items-center gap-1">
+                          {getMediaLinkDescription(newTrackLink)}
+                        </p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-white/70 text-sm mb-1 block">Тип медиа</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setNewTrackType('video')}
+                          className={`py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+                            newTrackType === 'video'
+                              ? 'bg-pink-600 text-white'
+                              : 'bg-white/5 text-white/60 hover:bg-white/10'
+                          }`}
+                        >
+                          <Film className="w-4 h-4" />
+                          Видео / Клип
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNewTrackType('audio')}
+                          className={`py-3 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 ${
+                            newTrackType === 'audio'
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white/5 text-white/60 hover:bg-white/10'
+                          }`}
+                        >
+                          <Music2 className="w-4 h-4" />
+                          Аудио
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-white/70 text-sm mb-1 block">Обложка (ссылка на картинку, опционально)</label>
+                      <input
+                        type="url"
+                        value={newTrackCover}
+                        onChange={(e) => setNewTrackCover(e.target.value)}
+                        placeholder="https://example.com/cover.jpg"
+                        className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/40 focus:outline-none focus:border-purple-400 text-sm"
+                      />
+                    </div>
+
+                    {linkError && (
+                      <div className="bg-red-500/20 border border-red-500/30 rounded-xl p-3 text-red-300 text-sm">
+                        {linkError}
+                      </div>
+                    )}
+
+                    {/* Подсказка по ссылкам */}
+                    <div className="bg-white/5 rounded-xl p-3 border border-white/10">
+                      <p className="text-white/60 text-xs font-semibold mb-2">💡 Поддерживаемые ссылки:</p>
+                      <ul className="text-white/50 text-xs space-y-1">
+                        <li>• Google Drive (видео и аудио)</li>
+                        <li>• YouTube (youtube.com, youtu.be)</li>
+                        <li>• Прямые ссылки на MP3, MP4, WebM</li>
+                      </ul>
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                      <button
+                        onClick={() => setShowAddForm(false)}
+                        className="flex-1 bg-white/10 border border-white/20 text-white py-3 rounded-xl font-semibold hover:bg-white/20"
+                      >
+                        Отмена
+                      </button>
+                      <button
+                        onClick={handleAddTrack}
+                        className="flex-1 bg-gradient-to-r from-purple-500 to-pink-600 text-white py-3 rounded-xl font-semibold shadow-xl hover:shadow-2xl transition-all"
+                      >
+                        Добавить
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Tracks List */}
           <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 border border-white/10">
             <h2 className="text-white font-bold mb-3 flex items-center gap-2">
               <Music className="w-5 h-5 text-purple-400" />
               Треки ({tracks.length})
             </h2>
-            
-            <input ref={fileInputRef} type="file" accept="audio/*,video/*" multiple onChange={handleFileUpload} className="hidden" />
-            
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <button
-                onClick={() => {
-                  if (fileInputRef.current) {
-                    fileInputRef.current.accept = 'audio/*';
-                    fileInputRef.current.click();
-                  }
-                }}
-                className="bg-purple-600/30 border border-purple-500/30 text-purple-300 py-2 rounded-xl hover:bg-purple-600/50 transition-colors flex items-center justify-center gap-2 text-sm"
-              >
-                <Music className="w-4 h-4" />
-                Аудио
-              </button>
-              <button
-                onClick={() => {
-                  if (fileInputRef.current) {
-                    fileInputRef.current.accept = 'video/*';
-                    fileInputRef.current.click();
-                  }
-                }}
-                className="bg-pink-600/30 border border-pink-500/30 text-pink-300 py-2 rounded-xl hover:bg-pink-600/50 transition-colors flex items-center justify-center gap-2 text-sm"
-              >
-                <Video className="w-4 h-4" />
-                Видео
-              </button>
-            </div>
 
-            {tracks.length > 0 && (
-              <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
+            {tracks.length === 0 ? (
+              <p className="text-white/40 text-sm text-center py-4">
+                Добавьте треки через кнопку выше
+              </p>
+            ) : (
+              <div className="space-y-2 max-h-80 overflow-y-auto">
                 {tracks.map((track, idx) => (
-                  <div key={track.id} className="flex items-center gap-2 bg-white/5 rounded-lg p-2 group">
-                    <span className="text-white/40 text-xs w-6">{idx + 1}.</span>
+                  <motion.div
+                    key={track.id}
+                    layout
+                    className="flex items-center gap-2 bg-white/5 rounded-lg p-2 group hover:bg-white/10 transition-colors"
+                  >
+                    <span className="text-white/40 text-xs w-6 text-center">{idx + 1}</span>
+                    
+                    {/* Обложка */}
+                    {track.coverUrl && (
+                      <img 
+                        src={track.coverUrl} 
+                        alt="" 
+                        className="w-8 h-8 rounded object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    )}
+                    
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-sm truncate">{track.name}</p>
                       <p className="text-white/50 text-xs truncate">{track.artist}</p>
-                      {track.fileUrl && (
-                        <span className={`text-xs ${track.fileName?.match(/\.(mp4|webm|mov)$/i) ? 'text-pink-400' : 'text-green-400'}`}>
-                          {track.fileName?.match(/\.(mp4|webm|mov)$/i) ? '🎬 Видео' : '🎵 Аудио'} загружено
-                        </span>
+                    </div>
+                    
+                    {/* Тип */}
+                    <div className="flex items-center gap-1">
+                      {track.mediaType === 'video' ? (
+                        <span className="text-pink-400 text-xs px-1.5 py-0.5 bg-pink-500/20 rounded">🎬</span>
+                      ) : (
+                        <span className="text-blue-400 text-xs px-1.5 py-0.5 bg-blue-500/20 rounded">🎵</span>
                       )}
                     </div>
-                    {!track.fileUrl && (
-                      <label className="cursor-pointer text-blue-400 hover:text-blue-300 text-xs px-2 py-1 bg-blue-500/20 rounded">
-                        +файл
-                        <input type="file" accept="audio/*,video/*" className="hidden" onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) updateTrackFile(track.id, file);
-                        }} />
-                      </label>
-                    )}
-                    <button onClick={() => removeTrack(track.id)} className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-all">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                    
+                    {/* Кнопки управления */}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => handleMoveTrack(idx, 'up')}
+                        disabled={idx === 0}
+                        className="text-white/50 hover:text-white disabled:opacity-30 p-1"
+                      >
+                        <ChevronUp className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => handleMoveTrack(idx, 'down')}
+                        disabled={idx === tracks.length - 1}
+                        className="text-white/50 hover:text-white disabled:opacity-30 p-1"
+                      >
+                        <ChevronDown className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTrack(track.id)}
+                        className="text-red-400 hover:text-red-300 p-1"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </motion.div>
                 ))}
               </div>
             )}
@@ -348,62 +558,114 @@ export default function HostPage() {
           </div>
         </div>
 
-        {/* Center Panel */}
+        {/* Center Panel — Игровая зона */}
         <div className="lg:col-span-2 space-y-4">
           {phase === 'setup' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
               <div className="bg-white/5 backdrop-blur-md rounded-2xl p-8 border border-white/10 text-center">
                 <Music className="w-16 h-16 text-purple-400 mx-auto mb-4" />
-                <h2 className="text-white text-2xl font-bold mb-2">{playlist?.name}</h2>
-                <p className="text-white/60 mb-4">{playlist?.description}</p>
-                
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-6 text-left">
-                  <p className="text-yellow-300 font-semibold mb-2">📌 Как загрузить клипы:</p>
-                  <ul className="text-white/60 text-sm space-y-1">
-                    <li>• Нажмите кнопку <span className="text-pink-400">«Видео»</span> для загрузки клипов</li>
-                    <li>• Поддерживаются форматы: MP4, WebM, MOV</li>
-                    <li>• Для каждого трека можно загрузить свой клип</li>
-                    <li>• При воспроизведении клип покажется на экране</li>
+                <h2 className="text-white text-2xl font-bold mb-2">Подготовка к игре</h2>
+                <p className="text-white/60 mb-6">
+                  Добавьте треки через ссылки (Google Drive, YouTube или прямые ссылки)
+                </p>
+
+                <div className="bg-white/5 rounded-xl p-4 mb-6 text-left inline-block max-w-md">
+                  <p className="text-white/70 font-semibold mb-2 text-sm">📌 Примеры ссылок:</p>
+                  <ul className="text-white/50 text-xs space-y-2">
+                    <li>
+                      <span className="text-pink-400">Google Drive видео:</span><br/>
+                      <code className="text-green-400 break-all">https://drive.google.com/file/d/1ABC.../view</code>
+                    </li>
+                    <li>
+                      <span className="text-blue-400">Google Drive аудио:</span><br/>
+                      <code className="text-green-400 break-all">https://drive.google.com/file/d/1XYZ.../view</code>
+                    </li>
+                    <li>
+                      <span className="text-red-400">YouTube:</span><br/>
+                      <code className="text-green-400 break-all">https://www.youtube.com/watch?v=dQw4w9WgXcQ</code>
+                    </li>
+                    <li>
+                      <span className="text-purple-400">Прямая ссылка на MP3:</span><br/>
+                      <code className="text-green-400 break-all">https://example.com/song.mp3</code>
+                    </li>
                   </ul>
                 </div>
 
-                <button
-                  onClick={startGame}
-                  disabled={tracks.length < 2}
-                  className="bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 px-8 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  🎮 Начать игру
-                </button>
-                {tracks.length < 2 && <p className="text-yellow-400/70 text-sm mt-2">Нужно минимум 2 трека</p>}
+                <div>
+                  <button
+                    onClick={startGame}
+                    disabled={tracks.length < 2}
+                    className="bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 px-8 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    🎮 Начать игру
+                  </button>
+                  {tracks.length < 2 && (
+                    <p className="text-yellow-400/70 text-sm mt-2">Нужно минимум 2 трека</p>
+                  )}
+                </div>
               </div>
             </motion.div>
           )}
 
           {(phase === 'waiting' || phase === 'playing' || phase === 'finished') && (
             <div className="space-y-4">
-              {/* Now Playing — БЕЗ НАЗВАНИЯ! */}
+              {/* Now Playing */}
               <div className="bg-white/5 backdrop-blur-md rounded-2xl p-6 border border-white/10">
                 {currentTrack ? (
                   <div className="text-center">
-                    {/* Видео-плеер (если клип) */}
-                    {currentTrackType === 'video' && (
+                    {/* Видео через iframe */}
+                    {currentMedia?.displayType === 'iframe' && (
+                      <div className="mb-4 rounded-xl overflow-hidden bg-black aspect-video">
+                        <iframe
+                          src={currentMedia.embedUrl}
+                          className="w-full h-full"
+                          allow="autoplay; encrypted-media"
+                          allowFullScreen
+                        />
+                      </div>
+                    )}
+
+                    {/* Видео через video тег */}
+                    {currentMedia?.displayType === 'video' && (
                       <div className="mb-4 rounded-xl overflow-hidden bg-black">
                         <video
-                          ref={videoRef}
+                          src={currentMedia.embedUrl}
                           className="w-full max-h-80 mx-auto"
+                          autoPlay
+                          controls
+                        />
+                      </div>
+                    )}
+
+                    {/* Аудио через audio тег */}
+                    {currentMedia?.displayType === 'audio' && (
+                      <div className="mb-4">
+                        <div className={`inline-flex items-center justify-center w-32 h-32 rounded-full mb-4 ${isPlaying ? 'bg-gradient-to-br from-green-500 to-emerald-600 animate-pulse' : 'bg-gradient-to-br from-purple-500 to-pink-600'}`}>
+                          <Disc3 className={`w-16 h-16 text-white ${isPlaying ? 'animate-spin' : ''}`} />
+                        </div>
+                        
+                        {/* Обложка если есть */}
+                        {currentTrack.coverUrl && (
+                          <div className="mb-4">
+                            <img 
+                              src={currentTrack.coverUrl} 
+                              alt={currentTrack.name}
+                              className="w-40 h-40 mx-auto rounded-xl object-cover shadow-2xl"
+                            />
+                          </div>
+                        )}
+                        
+                        <audio
+                          ref={audioRef}
+                          src={currentMedia.embedUrl}
+                          controls
+                          className="w-full max-w-md mx-auto"
                           onEnded={() => setIsPlaying(false)}
                         />
                       </div>
                     )}
 
-                    {/* Анимация диска — если аудио */}
-                    {currentTrackType === 'audio' && (
-                      <div className={`inline-flex items-center justify-center w-32 h-32 rounded-full mb-4 ${isPlaying ? 'bg-gradient-to-br from-green-500 to-emerald-600 animate-pulse' : 'bg-gradient-to-br from-purple-500 to-pink-600'}`}>
-                        <Disc3 className={`w-16 h-16 text-white ${isPlaying ? 'animate-spin' : ''}`} />
-                      </div>
-                    )}
-
-                    {/* Название — СКРЫТО по умолчанию! */}
+                    {/* Название — СКРЫТО по умолчанию */}
                     {showTrackInfo ? (
                       <div>
                         <h2 className="text-white text-2xl font-bold">{currentTrack.name}</h2>
@@ -415,8 +677,6 @@ export default function HostPage() {
                         <p className="text-white/30 text-sm mt-1">Найдите этот трек в своей карточке</p>
                       </div>
                     )}
-                    
-                    <audio ref={audioRef} onEnded={() => setIsPlaying(false)} />
                     
                     {/* Управление */}
                     <div className="flex items-center justify-center gap-4 mt-6">
@@ -436,14 +696,13 @@ export default function HostPage() {
                       </button>
                     </div>
 
-                    {/* Кнопка "Показать ответ" */}
                     <div className="mt-4 flex items-center justify-center gap-3">
                       <button
                         onClick={revealTrack}
                         disabled={showTrackInfo}
                         className="flex items-center gap-2 bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 px-4 py-2 rounded-xl hover:bg-yellow-500/30 disabled:opacity-50 transition-colors text-sm"
                       >
-                        <Eye className="w-4 h-4" />
+                        <Check className="w-4 h-4" />
                         Показать ответ
                       </button>
                       <span className="text-white/40 text-sm">
@@ -508,7 +767,7 @@ export default function HostPage() {
               </div>
               
               {connectedPlayers.size === 0 && (
-                <p className="text-center text-white/40 text-sm">💡 Демо-режим: кликайте на ячейки чтобы отмечать треки</p>
+                <p className="text-center text-white/40 text-sm">💡 Демо-режим: кликайте на ячейки</p>
               )}
 
               <div className="text-center">

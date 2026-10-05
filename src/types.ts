@@ -2,10 +2,12 @@ export interface Track {
   id: string;
   name: string;
   artist: string;
-  fileUrl: string;
+  fileUrl: string; // Для обратной совместимости (локальные файлы)
   fileName: string;
   duration?: number;
-  coverUrl?: string;
+  coverUrl?: string; // Ссылка на обложку
+  mediaLink?: string; // Ссылка на Google Drive / YouTube / прямая ссылка
+  mediaType?: 'audio' | 'video'; // Тип медиа (аудио или видео)
 }
 
 export interface User {

@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Music, Wifi, WifiOff, Trophy, Disc3, Check, Headphones } from 'lucide-react';
+import { Music, Wifi, WifiOff, Trophy, Disc3, Headphones } from 'lucide-react';
 import { Track, LottoCard, HostMessage } from '../types';
 import { usePlayerPeer } from '../hooks/usePeer';
 import LottoCardComponent from '../components/LottoCard';
@@ -16,8 +16,9 @@ export default function PlayerPage() {
   const [gameStarted, setGameStarted] = useState(false);
   const [winner, setWinner] = useState<string | null>(null);
   const [markedCount, setMarkedCount] = useState(0);
-  const [revealedTrack, setRevealedTrack] = useState<{ name: string; artist: string } | null>(null);
+  const [revealedTrack, setRevealedTrack] = useState<{ name: string; artist: string; coverUrl?: string } | null>(null);
   const [trackNumber, setTrackNumber] = useState<number | null>(null);
+  const [currentTrackId, setCurrentTrackId] = useState<string | null>(null);
   
   const handleMessage = useCallback((msg: HostMessage) => {
     switch (msg.type) {
@@ -33,14 +34,16 @@ export default function PlayerPage() {
         
       case 'playTrack':
         setIsPlaying(true);
-        setRevealedTrack(null); // Сбрасываем показ ответа
+        setRevealedTrack(null);
         setTrackNumber(msg.payload.trackIndex + 1);
+        setCurrentTrackId(msg.payload.trackId);
         break;
         
       case 'nextTrack':
         setIsPlaying(false);
         setRevealedTrack(null);
         setTrackNumber(msg.payload.trackIndex + 1);
+        setCurrentTrackId(msg.payload.trackId);
         break;
         
       case 'stopTrack':
@@ -48,12 +51,13 @@ export default function PlayerPage() {
         break;
         
       case 'revealTrack':
-        // Хост показал ответ — показываем название на мгновение
+        // Хост показал ответ — показываем название и обложку
+        const currentTrack = tracks.find(t => t.id === currentTrackId);
         setRevealedTrack({
           name: msg.payload.trackName,
           artist: msg.payload.artist,
+          coverUrl: currentTrack?.coverUrl,
         });
-        // Скрываем через 5 секунд
         setTimeout(() => setRevealedTrack(null), 5000);
         break;
         
@@ -66,9 +70,10 @@ export default function PlayerPage() {
         setMarkedCount(0);
         setRevealedTrack(null);
         setTrackNumber(null);
+        setCurrentTrackId(null);
         break;
     }
-  }, [playerName]);
+  }, [playerName, tracks, currentTrackId]);
 
   const { connected, error, send } = usePlayerPeer(roomId || '', playerName, handleMessage);
 
@@ -100,6 +105,9 @@ export default function PlayerPage() {
     }
   };
 
+  // Получаем текущий трек для отображения обложки
+  const currentTrack = currentTrackId ? tracks.find(t => t.id === currentTrackId) : null;
+
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-900 to-purple-900 flex items-center justify-center p-4">
@@ -108,7 +116,7 @@ export default function PlayerPage() {
           <WifiOff className="w-16 h-16 text-red-400 mx-auto mb-4" />
           <h2 className="text-white text-xl font-bold mb-2">Ошибка подключения</h2>
           <p className="text-white/70 mb-4">{error}</p>
-          <p className="text-white/50 text-sm">Проверьте код комнаты и убедитесь, что хост создал игру.</p>
+          <p className="text-white/50 text-sm">Проверьте код комнаты.</p>
         </motion.div>
       </div>
     );
@@ -123,7 +131,6 @@ export default function PlayerPage() {
           </motion.div>
           <h2 className="text-white text-2xl font-bold mb-2">Подключение...</h2>
           <p className="text-white/60">Комната: <span className="font-mono text-purple-300">{roomId}</span></p>
-          <p className="text-white/60">Игрок: <span className="text-purple-300">{playerName}</span></p>
         </motion.div>
       </div>
     );
@@ -173,9 +180,9 @@ export default function PlayerPage() {
         </div>
       </div>
 
-      {/* Status — БЕЗ НАЗВАНИЯ ТРЕКА! */}
+      {/* Статус — только название и обложка, БЕЗ ссылок и плееров */}
       <AnimatePresence mode="wait">
-        {isPlaying && !revealedTrack && (
+        {isPlaying && !revealedTrack && currentTrack && (
           <motion.div
             key="playing"
             initial={{ opacity: 0, y: -10 }}
@@ -184,16 +191,28 @@ export default function PlayerPage() {
             className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 backdrop-blur-md rounded-xl p-4 border border-purple-500/30 mb-4"
           >
             <div className="flex items-center gap-3">
-              <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}>
-                <Disc3 className="w-10 h-10 text-purple-400" />
-              </motion.div>
-              <div>
+              {/* Обложка трека */}
+              {currentTrack.coverUrl ? (
+                <img 
+                  src={currentTrack.coverUrl} 
+                  alt="" 
+                  className="w-14 h-14 rounded-lg object-cover shadow-lg"
+                  onError={(e) => { 
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}>
+                  <Disc3 className="w-14 h-14 text-purple-400" />
+                </motion.div>
+              )}
+              <div className="flex-1">
                 <p className="text-white font-semibold flex items-center gap-2">
                   <Headphones className="w-5 h-5 text-purple-400" />
                   Играет музыка...
                 </p>
                 <p className="text-white/50 text-sm">
-                  {trackNumber ? `Трек ${trackNumber}` : 'Слушайте внимательно!'}
+                  {trackNumber ? `Трек №${trackNumber}` : 'Слушайте внимательно!'}
                 </p>
               </div>
             </div>
@@ -212,9 +231,20 @@ export default function PlayerPage() {
             exit={{ opacity: 0 }}
             className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 backdrop-blur-md rounded-xl p-4 border border-yellow-500/30 mb-4"
           >
-            <p className="text-yellow-300 text-xs font-semibold mb-1">✨ Это был трек:</p>
-            <p className="text-white font-bold text-lg">{revealedTrack.name}</p>
-            <p className="text-white/60">{revealedTrack.artist}</p>
+            <div className="flex items-center gap-3">
+              {revealedTrack.coverUrl && (
+                <img 
+                  src={revealedTrack.coverUrl} 
+                  alt="" 
+                  className="w-14 h-14 rounded-lg object-cover shadow-lg"
+                />
+              )}
+              <div>
+                <p className="text-yellow-300 text-xs font-semibold mb-1">✨ Это был трек:</p>
+                <p className="text-white font-bold text-lg">{revealedTrack.name}</p>
+                <p className="text-white/60">{revealedTrack.artist}</p>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

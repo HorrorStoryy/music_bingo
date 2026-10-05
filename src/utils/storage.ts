@@ -1,4 +1,4 @@
-import { User, Playlist } from '../types';
+import { User, Playlist, Track } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 const USERS_KEY = 'music_lotto_users';
@@ -140,6 +140,50 @@ export function importPlaylist(json: string, createdBy: string): Playlist | null
   } catch {
     return null;
   }
+}
+
+// ============ TRACKS (отдельное хранилище для хоста) ============
+
+const HOST_TRACKS_KEY = 'music_lotto_host_tracks';
+
+export function getHostTracks(): Track[] {
+  const data = localStorage.getItem(HOST_TRACKS_KEY);
+  return data ? JSON.parse(data) : [];
+}
+
+export function saveHostTracks(tracks: Track[]) {
+  localStorage.setItem(HOST_TRACKS_KEY, JSON.stringify(tracks));
+}
+
+export function addHostTrack(track: Track) {
+  const tracks = getHostTracks();
+  tracks.push(track);
+  saveHostTracks(tracks);
+}
+
+export function removeHostTrack(id: string) {
+  const tracks = getHostTracks().filter(t => t.id !== id);
+  saveHostTracks(tracks);
+}
+
+export function updateHostTrack(id: string, updates: Partial<Track>) {
+  const tracks = getHostTracks();
+  const idx = tracks.findIndex(t => t.id === id);
+  if (idx !== -1) {
+    tracks[idx] = { ...tracks[idx], ...updates };
+    saveHostTracks(tracks);
+  }
+}
+
+export function reorderHostTracks(fromIndex: number, toIndex: number) {
+  const tracks = getHostTracks();
+  const [moved] = tracks.splice(fromIndex, 1);
+  tracks.splice(toIndex, 0, moved);
+  saveHostTracks(tracks);
+}
+
+export function clearHostTracks() {
+  localStorage.removeItem(HOST_TRACKS_KEY);
 }
 
 // ============ DEMO PLAYLISTS ============
