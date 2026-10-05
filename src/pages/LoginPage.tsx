@@ -35,36 +35,37 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-film-texture flex items-center justify-center p-4">
+    <div className="min-h-screen bg-paper-texture flex items-center justify-center p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-md w-full fade-in-film"
+        className="max-w-md w-full fade-in-photo"
       >
-        {/* Заголовок в стиле титров */}
+        {/* Заголовок */}
         <div className="text-center mb-8">
-          <div className="text-film-gold text-3xl mb-2 font-title tracking-widest">✦ ✦ ✦</div>
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: 'spring', delay: 0.2 }}
-            className="inline-flex items-center justify-center w-20 h-20 bg-film-dark border-4 border-film-gold rounded-full mb-4"
+            className="inline-block polaroid p-3 mb-4"
           >
-            <Music className="w-10 h-10 text-film-gold" />
+            <div className="bg-polaroid-cream w-20 h-20 flex items-center justify-center faded-photo">
+              <Music className="w-12 h-12 text-polaroid-accent" />
+            </div>
           </motion.div>
-          <h1 className="text-4xl font-serif-old font-bold text-film-cream mb-2">Музыкальное Лото</h1>
-          <p className="text-film-dim font-typewriter">Представление начинается...</p>
-          <div className="text-film-gold text-3xl mt-2 font-title tracking-widest">✦ ✦ ✦</div>
+          <h1 className="text-4xl font-serif-old font-bold text-polaroid mb-2">Музыкальное Лото</h1>
+          <p className="text-polaroid-light font-typewriter">Войдите или создайте аккаунт</p>
         </div>
 
-        <div className="silent-film-card">
+        {/* Форма */}
+        <div className="polaroid-card">
           <div className="flex gap-2 mb-6">
             <button
               onClick={() => setIsLogin(true)}
               className={`flex-1 py-2 rounded font-title text-lg transition-all border-2 ${
                 isLogin
-                  ? 'bg-film-gold/20 border-film-gold text-film-gold'
-                  : 'bg-film-dark border-film text-film-dim hover:border-film-gold'
+                  ? 'bg-polaroid-accent border-polaroid-accent text-white'
+                  : 'bg-polaroid-cream border-polaroid text-polaroid-light hover:border-polaroid-accent'
               }`}
             >
               Вход
@@ -73,8 +74,8 @@ export default function LoginPage() {
               onClick={() => setIsLogin(false)}
               className={`flex-1 py-2 rounded font-title text-lg transition-all border-2 ${
                 !isLogin
-                  ? 'bg-film-gold/20 border-film-gold text-film-gold'
-                  : 'bg-film-dark border-film text-film-dim hover:border-film-gold'
+                  ? 'bg-polaroid-accent border-polaroid-accent text-white'
+                  : 'bg-polaroid-cream border-polaroid text-polaroid-light hover:border-polaroid-accent'
               }`}
             >
               Регистрация
@@ -84,42 +85,42 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
               <div>
-                <label className="text-film-dim text-sm font-typewriter mb-1 block">Ваше имя</label>
+                <label className="text-polaroid-light text-sm font-typewriter mb-1 block">Ваше имя</label>
                 <input
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Как вас называть?"
-                  className="w-full bg-film-dark border-2 border-film rounded px-4 py-3 text-film-cream placeholder-film-dim/50 focus:outline-none focus:border-film-gold font-typewriter"
+                  className="w-full bg-polaroid-cream border-2 border-polaroid rounded px-4 py-3 text-polaroid placeholder-polaroid-light/50 focus:outline-none focus:border-polaroid-accent font-typewriter"
                 />
               </div>
             )}
 
             <div>
-              <label className="text-film-dim text-sm font-typewriter mb-1 block">Логин</label>
+              <label className="text-polaroid-light text-sm font-typewriter mb-1 block">Логин</label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="username"
-                className="w-full bg-film-dark border-2 border-film rounded px-4 py-3 text-film-cream placeholder-film-dim/50 focus:outline-none focus:border-film-gold font-typewriter"
+                className="w-full bg-polaroid-cream border-2 border-polaroid rounded px-4 py-3 text-polaroid placeholder-polaroid-light/50 focus:outline-none focus:border-polaroid-accent font-typewriter"
               />
             </div>
 
             <div>
-              <label className="text-film-dim text-sm font-typewriter mb-1 block">Пароль</label>
+              <label className="text-polaroid-light text-sm font-typewriter mb-1 block">Пароль</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-film-dark border-2 border-film rounded px-4 py-3 pr-12 text-film-cream placeholder-film-dim/50 focus:outline-none focus:border-film-gold font-typewriter"
+                  className="w-full bg-polaroid-cream border-2 border-polaroid rounded px-4 py-3 pr-12 text-polaroid placeholder-polaroid-light/50 focus:outline-none focus:border-polaroid-accent font-typewriter"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-film-dim hover:text-film-cream"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-polaroid-light hover:text-polaroid"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -128,15 +129,15 @@ export default function LoginPage() {
 
             {!isLogin && (
               <div>
-                <label className="text-film-dim text-sm font-typewriter mb-2 block">Роль</label>
+                <label className="text-polaroid-light text-sm font-typewriter mb-2 block">Роль</label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setRole('player')}
                     className={`py-3 rounded font-title text-lg transition-all border-2 ${
                       role === 'player'
-                        ? 'bg-film-gold/20 border-film-gold text-film-gold'
-                        : 'bg-film-dark border-film text-film-dim hover:border-film-gold'
+                        ? 'bg-polaroid-accent border-polaroid-accent text-white'
+                        : 'bg-polaroid-cream border-polaroid text-polaroid-light hover:border-polaroid-accent'
                     }`}
                   >
                     🎮 Игрок
@@ -146,8 +147,8 @@ export default function LoginPage() {
                     onClick={() => setRole('admin')}
                     className={`py-3 rounded font-title text-lg transition-all border-2 ${
                       role === 'admin'
-                        ? 'bg-film-gold/20 border-film-gold text-film-gold'
-                        : 'bg-film-dark border-film text-film-dim hover:border-film-gold'
+                        ? 'bg-polaroid-accent border-polaroid-accent text-white'
+                        : 'bg-polaroid-cream border-polaroid text-polaroid-light hover:border-polaroid-accent'
                     }`}
                   >
                     👑 Админ
@@ -157,14 +158,14 @@ export default function LoginPage() {
             )}
 
             {error && (
-              <div className="bg-red-900/30 border border-red-700 rounded p-3 text-red-300 text-sm font-typewriter">
+              <div className="bg-red-50 border border-red-200 rounded p-3 text-red-700 text-sm font-typewriter">
                 {error}
               </div>
             )}
 
             <button
               type="submit"
-              className="btn-film btn-film-primary w-full font-title text-xl flex items-center justify-center gap-2"
+              className="btn-polaroid btn-polaroid-primary w-full font-title text-xl flex items-center justify-center gap-2"
             >
               {isLogin ? (
                 <>
@@ -181,10 +182,10 @@ export default function LoginPage() {
           </form>
 
           {isLogin && (
-            <div className="mt-4 bg-film-dark/50 rounded p-3 border border-film/30">
-              <p className="text-film-dim text-xs font-typewriter">
-                💡 <span className="text-film-gold">Демо-аккаунт:</span><br />
-                Логин: <code className="text-film-cream">admin</code> / Пароль: <code className="text-film-cream">admin</code>
+            <div className="mt-4 bg-polaroid-cream rounded p-3 border border-polaroid">
+              <p className="text-polaroid-light text-xs font-typewriter">
+                💡 <span className="text-polaroid-accent">Демо-аккаунт:</span><br />
+                Логин: <code className="text-polaroid">admin</code> / Пароль: <code className="text-polaroid">admin</code>
               </p>
             </div>
           )}

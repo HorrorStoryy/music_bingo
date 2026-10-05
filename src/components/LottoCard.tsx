@@ -1,6 +1,5 @@
-import { LottoCard } from '../types';
+import { LottoCard, Track } from '../types';
 import { getTrackById } from '../utils/gameUtils';
-import { Track } from '../types';
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 
@@ -14,14 +13,17 @@ interface LottoCardComponentProps {
 
 export default function LottoCardComponent({ card, tracks, onCellClick, isHost = false, revealedTrackIds }: LottoCardComponentProps) {
   return (
-    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-xl">
-      <div className="text-center mb-3">
-        <h3 className="text-white font-bold text-lg">{card.playerName}</h3>
+    <div className="polaroid-card">
+      {/* Заголовок карточки */}
+      <div className="text-center mb-4 pb-3 border-b border-polaroid">
+        <h3 className="text-polaroid font-handwritten text-xl">{card.playerName}</h3>
         {card.completed && (
-          <span className="text-yellow-300 text-sm font-semibold animate-pulse">🎉 ЛОТО!</span>
+          <span className="text-polaroid-accent text-sm font-typewriter animate-pulse mt-1 block">🎉 ЛОТО!</span>
         )}
       </div>
-      <div className="grid grid-cols-5 gap-1.5">
+
+      {/* Сетка ячеек */}
+      <div className="grid grid-cols-5 gap-2">
         {card.cells.map((cell, idx) => {
           const track = getTrackById(tracks, cell.trackId);
           const isRevealed = revealedTrackIds?.has(cell.trackId);
@@ -33,28 +35,28 @@ export default function LottoCardComponent({ card, tracks, onCellClick, isHost =
               whileTap={!isHost ? { scale: 0.9 } : undefined}
               onClick={() => !isHost && onCellClick?.(cell.trackId)}
               className={`
-                aspect-square rounded-lg flex flex-col items-center justify-center p-1 text-center transition-all duration-300
-                ${isMarked 
-                  ? 'bg-green-500/80 border-2 border-green-300 shadow-lg shadow-green-500/30' 
-                  : isRevealed
-                    ? 'bg-yellow-500/40 border-2 border-yellow-300 animate-pulse'
-                    : 'bg-white/10 border border-white/20 hover:bg-white/20'
-                }
+                polaroid-cell aspect-square flex flex-col items-center justify-center p-1 text-center
+                ${isMarked ? 'marked' : ''}
+                ${isRevealed && !isMarked ? 'border-polaroid-accent bg-polaroid-accent/10' : ''}
                 ${!isHost && !isMarked ? 'cursor-pointer' : 'cursor-default'}
               `}
             >
-              {isMarked && (
-                <Check className="w-4 h-4 text-white absolute" />
-              )}
-              <span className={`text-[10px] leading-tight font-medium ${isMarked ? 'text-white line-through' : 'text-white/90'}`}>
+              <span className={`text-[10px] leading-tight font-typewriter ${isMarked ? 'text-white' : 'text-polaroid'}`}>
                 {track?.name || '???'}
               </span>
-              <span className={`text-[8px] leading-tight ${isMarked ? 'text-white/70' : 'text-white/50'}`}>
+              <span className={`text-[8px] leading-tight ${isMarked ? 'text-white/80' : 'text-polaroid-light'}`}>
                 {track?.artist || ''}
               </span>
             </motion.button>
           );
         })}
+      </div>
+
+      {/* "Подпись" снизу */}
+      <div className="mt-4 pt-3 border-t border-polaroid text-center">
+        <p className="text-polaroid-light text-xs font-typewriter">
+          {card.cells.filter(c => c.marked).length} / 15 отмечено
+        </p>
       </div>
     </div>
   );

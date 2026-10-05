@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Film, Eye, EyeOff } from 'lucide-react';
+import { Camera, Eye, EyeOff } from 'lucide-react';
 
 interface FilmOverlayProps {
   children: React.ReactNode;
@@ -7,20 +7,20 @@ interface FilmOverlayProps {
 }
 
 /**
- * Компонент-обёртка, добавляющий эффекты старой киноплёнки поверх контента.
- * Включает: зернистость, виньетку, мерцание, царапины, дрожание.
+ * Компонент-обёртка, добавляющий эффекты плёночной фотографии поверх контента.
+ * Включает: мягкую зернистость, виньетку, засветы.
  */
 export default function FilmOverlay({ children, showEffects = true }: FilmOverlayProps) {
   const [effectsEnabled, setEffectsEnabled] = useState(showEffects);
 
   if (!effectsEnabled) {
     return (
-      <div className="relative min-h-screen">
+      <div className="relative min-h-screen bg-polaroid">
         {children}
         <button
           onClick={() => setEffectsEnabled(true)}
-          className="fixed bottom-4 right-4 z-[9999] bg-film-medium border border-film text-film-cream p-2 rounded opacity-50 hover:opacity-100 transition-opacity"
-          title="Включить эффекты киноплёнки"
+          className="fixed bottom-4 right-4 z-[9999] bg-polaroid-white border border-polaroid text-polaroid p-2 rounded opacity-50 hover:opacity-100 transition-opacity shadow-polaroid"
+          title="Включить эффекты плёнки"
         >
           <Eye className="w-4 h-4" />
         </button>
@@ -29,23 +29,22 @@ export default function FilmOverlay({ children, showEffects = true }: FilmOverla
   }
 
   return (
-    <div className="relative min-h-screen film-jitter">
+    <div className="relative min-h-screen bg-polaroid">
       {/* Основной контент */}
       {children}
 
-      {/* Эффекты киноплёнки (поверх всего, но не перехватывают клики) */}
+      {/* Эффекты плёночной фотографии (поверх всего, но не перехватывают клики) */}
       <div className="film-grain" />
       <div className="film-vignette" />
-      <div className="film-flicker" />
-      <div className="film-scratches" />
+      <div className="film-light-leaks" />
 
       {/* Кнопка переключения эффектов */}
       <button
         onClick={() => setEffectsEnabled(false)}
-        className="fixed bottom-4 right-4 z-[9999] bg-film-medium border border-film text-film-cream p-2 rounded opacity-30 hover:opacity-100 transition-opacity"
-        title="Выключить эффекты киноплёнки"
+        className="fixed bottom-4 right-4 z-[9999] bg-polaroid-white border border-polaroid text-polaroid p-2 rounded opacity-30 hover:opacity-100 transition-opacity shadow-polaroid"
+        title="Выключить эффекты плёнки"
       >
-        <Film className="w-4 h-4" />
+        <Camera className="w-4 h-4" />
       </button>
     </div>
   );
