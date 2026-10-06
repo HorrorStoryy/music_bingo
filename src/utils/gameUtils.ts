@@ -31,16 +31,6 @@ export function generateShuffleOrder(tracks: Track[]): string[] {
   return [...tracks].sort(() => Math.random() - 0.5).map(t => t.id);
 }
 
-export function checkBingo(card: LottoCard): boolean {
-  return card.cells.every(cell => cell.marked);
-}
-
-export function formatDuration(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
-
 export function getTrackById(tracks: Track[], id: string): Track | undefined {
   return tracks.find(t => t.id === id);
 }
